@@ -263,3 +263,49 @@ df=cbind(df,k$cluster[-1])
 subset4<-subset(df,df$`k$cluster[-1]`==4)
 write.csv(subset4,"/Users/jzk/Documents/M2/BI/subset4.csv")
 write.csv(k$prototypes[1,],"/Users/jzk/Documents/M2/BI/subset1w.csv")
+
+
+
+
+########Second way with abstract for bonus if time
+df<-data.frame(Title=character(),Authers=character(),Year=character(),Venue=character(),Id=character(),ListCitation=character(),Abstract=character(),NbrAuther=integer(),NbrCitation=integer())
+dfnames<-data.frame(Title=character(),Authers=character(),Year=character(),Venue=character(),Id=character(),ListCitation=character(),Abstract=character(),NbrAuther=integer(),NbrCitation=integer())
+
+
+for (i in 1:length(data)) {
+  if(substr(data[i],1,6)=="#cSTOC" | substr(data[i],1,7)=="#cSIGIR"){
+    print(i)
+    df2<-cbind(data[i-3],data[i-2],data[i-1],data[i],data[i+1])
+    countAuthers= str_count(data[i-2],",")+1
+    j=i+2
+    str=""
+    abs=""
+    boo=0
+    while(substr(data[j],1,2)!="#*"){
+      if(substr(data[j],1,2)=="#%"){
+        str=paste(str,data[j])
+        if(substr(data[j+1],1,2)=="#%"){
+          str=paste(str,",")
+          boo=1
+        }
+      }
+      if(substr(data[j],1,2)=="#!"){
+        abs=paste(abs,data[j])
+        if(substr(data[j+1],1,2)=="#!"){
+          abs=paste(abs,",")
+        }
+      }
+      j=j+1
+    }
+    countCitations = str_count(str,",")+boo
+    df2<-cbind(df2,str,abs,countAuthers,countCitations)
+    df<-rbind(df,df2)
+  }
+}
+
+names(df)<-names(dfnames)
+df$Title<-as.character(df$Title);df$Authers<-as.character(df$Authers);df$Year<-as.character(df$Year);df$Venue<-as.character(df$Venue);df$Id<-as.character(df$Id);df$ListCitation<-as.character(df$ListCitation);df$Abstract<-as.character(df$Abstract)
+df[,1]<-str_remove(df[,1],"[#]");df[,1]<-str_remove(df[,1],"[*]");df[,2]<-str_remove(df[,2],"[#]");df[,2]<-str_remove(df[,2],"[@]")
+df[,3]<-str_remove(df[,3],"[#]");df[,3]<-str_remove(df[,3],"[t]");df[,4]<-str_remove(df[,4],"[#]");df[,4]<-str_remove(df[,4],"[c]")
+df[,5]<-str_remove_all(df[,5],"[index]");df[,5]<-str_remove(df[,5],"[#]");df[,6]<-str_remove_all(df[,6],"[#]");df[,6]<-str_remove_all(df[,6],"[%]")
+df[,7]<-str_remove(df[,7],"[#]");df[,7]<-str_remove(df[,7],"[!]")
