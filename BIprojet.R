@@ -309,3 +309,71 @@ df[,1]<-str_remove(df[,1],"[#]");df[,1]<-str_remove(df[,1],"[*]");df[,2]<-str_re
 df[,3]<-str_remove(df[,3],"[#]");df[,3]<-str_remove(df[,3],"[t]");df[,4]<-str_remove(df[,4],"[#]");df[,4]<-str_remove(df[,4],"[c]")
 df[,5]<-str_remove_all(df[,5],"[index]");df[,5]<-str_remove(df[,5],"[#]");df[,6]<-str_remove_all(df[,6],"[#]");df[,6]<-str_remove_all(df[,6],"[%]")
 df[,7]<-str_remove(df[,7],"[#]");df[,7]<-str_remove(df[,7],"[!]")
+
+
+##bonus sur abstract
+mat=read.csv("/Users/jzk/Documents/M2/BI/articles.csv")
+wordVC <- as.character(mat$Abstract)
+corpus <- (VectorSource(wordVC))
+corpus <- Corpus(corpus)
+summary(corpus)
+tdm <- TermDocumentMatrix(corpus)
+inspect(tdm)
+dtm = DocumentTermMatrix(corpus)
+inspect(dtm)
+dtmBig=matrix(dtm,nrow=dtm$nrow,ncol=dtm$ncol,dimnames =dtm$dimnames)
+dtmdf=as.data.frame(dtmBig)
+write.csv(dtmdf,"/Users/jzk/Documents/M2/BI/dtmAbstract.csv")
+
+data_GpM = dtmdf
+data_GpM.df <- apply(data_GpM, 1, term.frequency)
+data_GpM.idf <- apply(data_GpM, 2, inverse.doc.frequency)
+data_Gpm.tfidf <-  apply(data_GpM.df, 2, tf.idf, idf = data_GpM.idf)
+
+rangMaladies=order(rowSums(data_Gpm.tfidf),decreasing=T)[c(1:2000)];length(rangMaladies) #### ON prend les 500 premi??res maladies importantes dans le tf-idf
+data_used=t(data_GpM[,rangMaladies]);dim(data_used) #### matrice 500x16591 non normalis??e
+data_used=data_used[,which(colSums(data_used) > 0)];dim(data_used);View(data_used)
+data_GpM.df <- apply(data_used, 1, term.frequency)#### on refait un tfidf sur la matrice pr??c??dente pour r??cup??rer les indices des g??nes importants sur les maladies restantes
+data_GpM.idf <- apply(data_used, 2, inverse.doc.frequency)
+data_Gpm.tfidf <-  apply(data_GpM.df, 2, tf.idf, idf = data_GpM.idf);dim(data_Gpm.tfidf)
+rangGenes=order(rowSums(data_Gpm.tfidf),decreasing=T)[c(1:3581)];length(rangGenes) ### on prend les 6000 g??nes les plus important
+data_used=data_used[,rangGenes];dim(data_used)####on a une matrice 1500x6000 avec des trucs repr??sentatifs
+View(t(data_used))
+dtmdfAbstract=t(data_used)
+write.csv(dtmdfAbstract,"/Users/jzk/Documents/M2/BI/dtmAbstractred.csv")
+
+library(skmeans)
+k.max <- 15
+wss <- sapply(2:k.max, 
+              function(k){skmeans(dtmdfred, k,control = list(verbose = TRUE))$value})
+wss
+plot(2:k.max, wss,
+     type="b", pch = 19, frame = FALSE, 
+     xlab="Number of clusters K",
+     ylab="Value of the criterion")
+findElbow(wss) ####nombre de clusters pour la methode Skmeans sur le jeu de donn??es.
+
+library(cluster)
+library(fpc)
+k=skmeans(dtmdfAbstract, 4,control = list(verbose = TRUE))
+plotcluster(dtmdfAbstract, k$cluster)
+
+y=kmeans(dtmdfAbstract,4)
+plotcluster(dtmdfAbstract, y$cluster)
+write.csv(k$cluster,"/Users/jzk/Documents/M2/BI/Abstractcluster.csv")
+a=read.csv("/Users/jzk/Documents/M2/BI/Abstractcluster.csv")
+View(a)
+dim(a)[1]
+View(mat)
+dim(mat)
+mat=cbind(mat,rep(0,5828))
+View(mat)
+for(i in 1:dim(a)[1]){
+  mat$`rep(0, 5828)`[a[i,1]]=a[i,2]
+}
+mat=mat[mat$`rep(0, 5828)`!=0,]
+write.csv(mat,"/Users/jzk/Documents/M2/BI/Abstractdf.csv")
+
+subset4<-subset(mat,mat$`rep(0, 5828)`==4)
+write.csv(subset4,"/Users/jzk/Documents/M2/BI/Abstractsubset4.csv")
+write.csv(k$prototypes[4,],"/Users/jzk/Documents/M2/BI/Abstractsubsetw4.csv")
